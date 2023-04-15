@@ -1,18 +1,11 @@
-/**
- * @brief : 
- * 
- * @Author : ty (tangt_t@foxmail.com)
- * @CreateTime : 2023-04-03
- * @Version : V1.0.0
- * @Change Logs:
- * Date       Author        Notes
- *     
- */
 #ifndef __EUROMAP63_COLLECTER_H__
 #define __EUROMAP63_COLLECTER_H__
 
+#include "ty_list.h"
 
-#define EUROMAP63_SHARE_FOLDER_PATH     "/var/user/data"
+#define EUROMAP63_SHARE_FOLDER_PATH     "/var/user/data/"
+#define EUROMAP63_IMM_NAME_MAX_LEN      48
+#define EUROMAP63_PARAM_NAME_MAX_LEN    32
 #define EUROMAP63_CONNECT_TIMEOUT_MS    5000
 #define EUROMAP63_REQUEST_TIMEOUT_MS    60000
 #define EUROMAP63_MIN_SESSION_NUM       0
@@ -29,7 +22,7 @@ typedef struct
     int max_session;
     int encode;
     int cyclic;
-    char imm[64];
+    char imm[EUROMAP63_IMM_NAME_MAX_LEN + 4];
 } eu63_setup;
 
 typedef struct
@@ -41,16 +34,16 @@ typedef struct
 
 typedef struct
 {
-	char name[36];
-	char *value;
-	struct list4c_hlist_node hlist_node;
+    char name[EUROMAP63_PARAM_NAME_MAX_LEN + 4];
+    char *value;
+    ty_list_t param_node;
 } eu63_report_param;
 
 typedef struct
 {
-	int req_count;
-	int rsp_count;
-	struct list4c_hlist_head param_head;
+    int req_count;
+    int rsp_count;
+    ty_list_t param_head;
 } eu63_param_list;
 
 typedef enum
@@ -71,7 +64,7 @@ typedef enum
 int eu63_create_share_folder(void);
 int eu63_delete_share_folder(void);
 
-eu63_collecter *eu63_collecter_create(void);
+eu63_collecter *eu63_collecter_create(const char *imm);
 void eu63_collecter_free(eu63_collecter *collecter);
 
 int eu63_create_imm_folder(eu63_collecter *collecter);

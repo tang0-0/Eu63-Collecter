@@ -75,22 +75,22 @@ static inline ty_slist_t *ty_slist_get_first(ty_slist_t *h)
     return h->next;
 }
 
-static inline ty_slist_t *ty_slist_get_last(ty_slist_t *h)
+static inline ty_slist_t *ty_slist_get_last(ty_slist_t *l)
 {
-    while (h->next) h = h->next;
+    while (l->next) l = l->next;
 
-    return h;
+    return l;
 }
 
 #define ty_slist_for_each(pos, head) \
-    for (pos = (head)->next; pos != RT_NULL; pos = pos->next)
+    for (pos = (head)->next; pos != 0; pos = pos->next)
 
 #define ty_slist_entry(node, type, member) \
     ty_container_of(node, type, member)
 
 #define ty_slist_for_each_entry(pos, head, member) \
     for (pos = ty_slist_entry((head)->next, typeof(*pos), member); \
-         &pos->member != (RT_NULL); \
+         &pos->member != (0); \
          pos = ty_slist_entry(pos->member.next, typeof(*pos), member))
 
 #define ty_slist_get_first_entry(ptr, type, member) \
@@ -102,7 +102,7 @@ static inline ty_slist_t *ty_slist_get_last(ty_slist_t *h)
 
 static inline void ty_list_init(ty_list_t *l)
 {
-    l->next = l->prev = l;
+    l->next = l->prev = 0;
 }
 
 static inline void ty_list_insert_after(ty_list_t *l, ty_list_t *n)
@@ -133,7 +133,7 @@ static inline void ty_list_remove(ty_list_t *n)
 
 static inline int ty_list_is_empty(const ty_list_t *l)
 {
-    return l->next == l;
+    return (l->next == 0);
 }
 
 static inline unsigned int ty_list_get_len(const ty_list_t *l)
@@ -141,7 +141,7 @@ static inline unsigned int ty_list_get_len(const ty_list_t *l)
     unsigned int len = 0;
     const ty_list_t *p = l;
 
-    while (p->next != l)
+    while (p->next != 0)
     {
         p = p->next;
         len ++;
@@ -151,25 +151,24 @@ static inline unsigned int ty_list_get_len(const ty_list_t *l)
 }
 
 #define ty_list_for_each(pos, head) \
-    for (pos = (head)->next; pos != (head); pos = pos->next)
+    for (pos = (head)->next; pos != (0); pos = pos->next)
 
 #define ty_list_for_each_safe(pos, n, head) \
-    for (pos = (head)->next, n = pos->next; pos != (head); \
+    for (pos = (head)->next, n = pos->next; pos != (0); \
         pos = n, n = pos->next)
 
 #define ty_list_entry(node, type, member) \
     ty_container_of(node, type, member)
 
-#define ty_list_for_each_entry(pos, head, member) \
-    for (pos = ty_list_entry((head)->next, typeof(*pos), member); \
-         &pos->member != (head); \
-         pos = ty_list_entry(pos->member.next, typeof(*pos), member))
+#define ty_list_for_each_entry(tpos, pos, head, member) \
+    for (pos = (head)->next; \
+         pos && ({ tpos = ty_list_entry(pos, typeof(*tpos), member); 1 }); \
+         pos = pos->next)
 
-#define ty_list_for_each_entry_safe(pos, n, head, member) \
-    for (pos = ty_list_entry((head)->next, typeof(*pos), member), \
-         n = ty_list_entry(pos->member.next, typeof(*pos), member); \
-         &pos->member != (head); \
-         pos = n, n = ty_list_entry(n->member.next, typeof(*n), member))
+#define ty_list_for_each_entry_safe(tpos, pos, n, head, member) \
+    for (pos = (head)->next; \
+         pos && ({ n = pos->next; 1;}) && ({ tpos = ty_list_entry(pos, typeof(*tpos), member); 1 }); \
+         pos = n)
 
 
 #endif

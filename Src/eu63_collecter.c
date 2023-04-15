@@ -1,4 +1,17 @@
-#include <list4c.h>
+/**
+ * @File Name: euromap63_interface.c
+ *
+ * @brief :
+ *
+ * @copyright : Copyright (c) InHand Networks, Inc, 2001-2023
+ *
+ * @Author : tangzh (tangzh@inhand.com.cn)
+ * @CreateTime : 2023-03-13
+ *
+ * @Change Logs:
+ * Date       Author        Notes
+ *
+ */
 #include "eu63_collecter.h"
 
 #include <stdio.h>
@@ -13,7 +26,7 @@
 #include <time.h>
 
 
-eu63_collecter *eu63_collecter_create(void)
+eu63_collecter *eu63_collecter_create(const char *imm)
 {
     eu63_collecter *collecter = NULL;
 
@@ -28,10 +41,15 @@ eu63_collecter *eu63_collecter_create(void)
         collecter->setup.max_session = EUROMAP63_MAX_SESSION_NUM;
         collecter->setup.encode = EUROMAP63_ENCODE;
         collecter->setup.cyclic = EUROMAP63_HAS_CYCLIC;
+
+        if (imm)
+        {
+            strncpy(collecter->setup.imm, imm, sizeof(collecter->setup.imm));
+        }
     }
     else
     {
-        ilog_error("eu63_collecter_create failed");
+        printf("eu63_collecter_create failed");
     }
 
     return collecter;
@@ -42,32 +60,14 @@ void eu63_collecter_free(eu63_collecter *collecter)
     free(collecter);
 }
 
-int eu63_collecter_set(eu63_collecter *collecter, eu63_setup *setup)
-{
-    if (NULL == collecter || NULL == setup)
-    {
-        return -1;
-    }
-
-    collecter->setup.connect_timeout = setup->connect_timeout;
-    collecter->setup.request_timeout = setup->request_timeout;
-    collecter->setup.max_session = setup->max_session;
-    collecter->setup.min_session = setup->min_session;
-    collecter->setup.cyclic = setup->cyclic;
-    collecter->setup.encode = setup->encode;
-    strlcpy(collecter->setup.imm, setup->imm, sizeof(setup->imm));
-
-    return 0;
-}
-
 int eu63_create_share_folder(void)
 {
     if (0 != access(EUROMAP63_SHARE_FOLDER_PATH, F_OK))
     {
-        ilog_info("Create share folder!!!");
+        printf("Create share folder!!!");
         if (0 != mkdir(EUROMAP63_SHARE_FOLDER_PATH, 0777))
         {
-            ilog_error("Mkdir share folder failed");
+            printf("Mkdir share folder failed");
             return -2;
         }
     }
@@ -97,10 +97,10 @@ int eu63_create_imm_folder(eu63_collecter *collecter)
 
     if (0 != access(path, F_OK))
     {
-        ilog_info("Create IMM folder!!!");
+        printf("Create IMM folder!!!");
         if (0 != mkdir(path, 0777))
         {
-            ilog_error("Mkdir IMM folder failed");
+            printf("Mkdir IMM folder failed");
             return -2;
         }
     }
@@ -141,8 +141,8 @@ int eu63_clear_imm_folder(eu63_collecter *collecter)
         if (strcmp(".", ptr->d_name) != 0 && strcmp("..", ptr->d_name) != 0)
         {
             snprintf(file_name, sizeof(file_name), "/%s", ptr->d_name);
-            strlcpy(&path[path_len], file_name, sizeof(file_name));
-            ilog_debug("EU63 clear imm:%s", path);
+            strncpy(&path[path_len], file_name, sizeof(file_name));
+            printf("EU63 clear imm:%s", path);
             remove(path);
         }
     }
@@ -167,8 +167,8 @@ static int search_available_session(eu63_collecter *collecter)
     for (i = collecter->setup.min_session; i < collecter->setup.max_session; i++)
     {
         snprintf(sess_name, sizeof(sess_name), "/SESS%04d.REQ", nnnn);
-        strlcpy(&path[path_len], sess_name, sizeof(sess_name));
-        // ilog_debug("SESSION:%s", path);
+        strncpy(&path[path_len], sess_name, sizeof(sess_name));
+
         if (0 == access(path, F_OK))
         {
             nnnn++;
@@ -176,8 +176,8 @@ static int search_available_session(eu63_collecter *collecter)
         }
 
         snprintf(sess_name, sizeof(sess_name), "/SESS%04d.RSP", nnnn);
-        strlcpy(&path[path_len], sess_name, sizeof(sess_name));
-        // ilog_debug("SESSION:%s", path);
+        strncpy(&path[path_len], sess_name, sizeof(sess_name));
+
         if (0 == access(path, F_OK))
         {
             nnnn++;
@@ -269,7 +269,7 @@ static int prase_session_rsp_file(eu63_collecter *collecter)
         {
             line[i] = '\0';
             i = 0;
-            ilog_debug("SESS_RSP:%s;", line);
+            printf("SESS_RSP:%s;", line);
             if (NULL != strstr(line, "ERROR"))
             {
                 error--;
@@ -281,7 +281,7 @@ static int prase_session_rsp_file(eu63_collecter *collecter)
             {
                 line[i] = '\0';
                 i = 0;
-                ilog_debug("SESS_RSP:%s", line);
+                printf("SESS_RSP:%s", line);
                 if (NULL != strstr(line, "ERROR"))
                 {
                     error--;
@@ -294,7 +294,7 @@ static int prase_session_rsp_file(eu63_collecter *collecter)
             {
                 line[i] = '\0';
                 i = 0;
-                ilog_debug("SESS_RSP:%s", line);
+                printf("SESS_RSP:%s", line);
                 if (NULL != strstr(line, "ERROR"))
                 {
                     error--;
@@ -322,7 +322,7 @@ static int prase_session_rsp_file(eu63_collecter *collecter)
     return 0;
 }
 
-static int wait_file_delte(const char *path, int timeout)
+static int wait_file_delete(const char *path, int timeout)
 {
     if (0 == timeout)
     {
@@ -335,7 +335,7 @@ static int wait_file_delte(const char *path, int timeout)
     int fd = inotify_init();
     if (fd < 0)
     {
-        ilog_error("inotify_init failed:%s", strerror(errno));
+        printf("inotify_init failed:%s", strerror(errno));
         return -2;
     }
 
@@ -343,7 +343,7 @@ static int wait_file_delte(const char *path, int timeout)
     wfd = inotify_add_watch(fd, path, IN_DELETE_SELF);
     if (wfd < 0)
     {
-        ilog_error("inotify_add_watch failed:%s", strerror(errno));
+        printf("inotify_add_watch failed:%s", strerror(errno));
         close(fd);
         return -2;
     }
@@ -371,19 +371,19 @@ static int wait_file_delte(const char *path, int timeout)
         }
         else
         {
-            ilog_error("Read inotify error:%s", strerror(errno));
+            printf("Read inotify error:%s", strerror(errno));
             ret = -3;
         }
 
     }
     else if (0 == ret)
     {
-        ilog_error("wait_file_delte select timeout!");
+        printf("wait_file_delete select timeout!");
         ret = -3;
     }
     else
     {
-        ilog_error("wait_file_delte select error:%s", strerror(errno));
+        printf("wait_file_delete select error:%s", strerror(errno));
         ret = -3;
     }
 
@@ -404,10 +404,10 @@ static int wait_session_file_delete(eu63_collecter *collecter, int timeout)
     snprintf(sess_name, sizeof(sess_name), "/SESS%04d.REQ", collecter->now_session);
     strncat(path, sess_name, sizeof(sess_name));
 
-    return wait_file_delte(path, timeout);
+    return wait_file_delete(path, timeout);
 }
 
-static int delte_session_file(eu63_collecter *collecter, int type)
+static int delete_session_file(eu63_collecter *collecter, int type)
 {
     char path[256] = {0};
     char sess_name[16] = {0};
@@ -476,7 +476,7 @@ static int prase_presen_rsp_file(eu63_collecter *collecter, int rsp_type)
         {
             line[i] = '\0';
             i = 0;
-            ilog_debug("PRESEN_RSP:%s;", line);
+            printf("PRESEN_RSP:%s;", line);
             if (NULL != strstr(line, "ERROR"))
             {
                 error--;
@@ -488,7 +488,7 @@ static int prase_presen_rsp_file(eu63_collecter *collecter, int rsp_type)
             {
                 line[i] = '\0';
                 i = 0;
-                ilog_debug("PRESEN_RSP:%s", line);
+                printf("PRESEN_RSP:%s", line);
                 if (NULL != strstr(line, "ERROR"))
                 {
                     error--;
@@ -501,7 +501,7 @@ static int prase_presen_rsp_file(eu63_collecter *collecter, int rsp_type)
             {
                 line[i] = '\0';
                 i = 0;
-                ilog_debug("PRESEN_RSP:%s", line);
+                printf("PRESEN_RSP:%s", line);
                 if (NULL != strstr(line, "ERROR"))
                 {
                     error--;
@@ -529,7 +529,7 @@ static int prase_presen_rsp_file(eu63_collecter *collecter, int rsp_type)
     return 0;
 }
 
-static int delte_presen_file(eu63_collecter *collecter, int delete_type, int cmd_type)
+static int delete_presen_file(eu63_collecter *collecter, int delete_type, int cmd_type)
 {
     char path[256] = {0};
     char presen_name[16] = {0};
@@ -581,7 +581,7 @@ static int delte_presen_file(eu63_collecter *collecter, int delete_type, int cmd
     return ret;
 }
 
-static int delte_app_file(eu63_collecter *collecter, int cmd_type)
+static int delete_app_file(eu63_collecter *collecter, int cmd_type)
 {
     char path[256] = {0};
     char presen_name[16] = {0};
@@ -612,7 +612,6 @@ eu63_report_param *eu63_create_param(void)
     }
 
     memset(report_param, 0, sizeof(eu63_report_param));
-    LIST4C_INIT_HLIST_NODE(&(report_param->hlist_node));
 
     return report_param;
 }
@@ -641,7 +640,6 @@ eu63_param_list *eu63_create_param_list(void)
         return NULL;
     }
     memset(report_list, 0, sizeof(eu63_param_list));
-    LIST4C_INIT_HLIST_HEAD(&(report_list->param_head));
 
     return report_list;
 }
@@ -653,9 +651,9 @@ int eu63_free_param_list(eu63_param_list *list)
     struct list4c_hlist_node *pos, *n;
     eu63_report_param *param;
 
-    list4c_hlist_for_each_entry_safe(param, pos, n, &(list->param_head), hlist_node)
+    ty_list_for_each_entry_safe(param, pos, n, &(list->param_head), param_node)
     {
-        list4c_hlist_del_init(&(param->hlist_node));
+        ty_list_remove(&(param->param_node));
         eu63_free_param(param);
     }
 
@@ -692,8 +690,8 @@ static int search_available_presen(eu63_collecter *collecter, int cmd_type)
     for (i = 0; i < 1000; i++)
     {
         snprintf(file_name, sizeof(file_name), "/0000%c%04d.JOB", type, nnn);
-        strlcpy(&path[path_len], file_name, sizeof(file_name));
-        // ilog_debug("SESSION:%s", path);
+        strncpy(&path[path_len], file_name, sizeof(file_name));
+
         if (0 == access(path, F_OK))
         {
             nnn++;
@@ -701,8 +699,8 @@ static int search_available_presen(eu63_collecter *collecter, int cmd_type)
         }
 
         snprintf(file_name, sizeof(file_name), "/0000%c%04d.RSP", type, nnn);
-        strlcpy(&path[path_len], file_name, sizeof(file_name));
-        // ilog_debug("SESSION:%s", path);
+        strncpy(&path[path_len], file_name, sizeof(file_name));
+
         if (0 == access(path, F_OK))
         {
             nnn++;
@@ -710,8 +708,8 @@ static int search_available_presen(eu63_collecter *collecter, int cmd_type)
         }
 
         snprintf(file_name, sizeof(file_name), "/0000%c%04d.DAT", type, nnn);
-        strlcpy(&path[path_len], file_name, sizeof(file_name));
-        // ilog_debug("SESSION:%s", path);
+        strncpy(&path[path_len], file_name, sizeof(file_name));
+
         if (0 == access(path, F_OK))
         {
             nnn++;
@@ -765,9 +763,8 @@ static int write_presen_file_report(eu63_collecter *collecter, eu63_param_list *
     fputs("PARAMETERS\r\n", fp);
     struct list4c_hlist_node *pos, *n;
     eu63_report_param *param;
-    list4c_hlist_for_each_entry_safe(param, pos, n, &(report_list->param_head), hlist_node)
+    ty_list_for_each_entry_safe(param, pos, n, &(report_list->param_head), param_node)
     {
-        // ilog_debug("EU63 measure addr %s", param->name);
         if (n)
         {
             fprintf(fp, "%s,\r\n", param->name);
@@ -788,7 +785,7 @@ eu63_report_param *find_report_param_from_list(eu63_param_list *list, unsigned i
     eu63_report_param *param = NULL;
     unsigned int i = 0;
 
-    list4c_hlist_for_each_entry_safe(param, pos, n, &(list->param_head), hlist_node)
+    ty_list_for_each_entry_safe(param, pos, n, &(list->param_head), param_node)
     {
         if (i == num)
         {
@@ -806,7 +803,7 @@ static int set_report_param(eu63_report_param *param, char *name, char *value, u
 
     if (name != NULL)
     {
-        strlcpy(param->name, name, sizeof(param->name));
+        strncpy(param->name, name, sizeof(param->name));
     }
 
     if (value_len > 256) value_len = 256;
@@ -818,7 +815,7 @@ static int set_report_param(eu63_report_param *param, char *name, char *value, u
         if (NULL != value_buff)
         {
             param->value = value_buff;
-            strlcpy(param->value, value, value_len + 1);
+            strncpy(param->value, value, value_len + 1);
         }
         else
         {
@@ -891,7 +888,6 @@ static int prase_app_file_report(eu63_collecter *collecter, eu63_param_list *rep
                 {
                     set_report_param(param, name, NULL, 0);
                     name_count++;
-                    // ilog_debug("NAME1:%s", param->name);
                 }
             }
         }
@@ -907,7 +903,6 @@ static int prase_app_file_report(eu63_collecter *collecter, eu63_param_list *rep
                 {
                     set_report_param(param, name, NULL, 0);
                     name_count++;
-                    // ilog_debug("NAME2:%s", param->name);
                 }
                 break;
             }
@@ -957,7 +952,6 @@ static int prase_app_file_report(eu63_collecter *collecter, eu63_param_list *rep
                 set_report_param(param, NULL, value, i);
                 value_count++;
                 i = 0;
-                // ilog_debug("VALUE1:%s", param->value);
             }
 
         }
@@ -971,7 +965,6 @@ static int prase_app_file_report(eu63_collecter *collecter, eu63_param_list *rep
                     set_report_param(param, NULL, value, i);
                     value_count++;
                     i = 0;
-                    // ilog_debug("VALUE2:%s", param->value);
                 }
                 break;
             }
@@ -986,7 +979,6 @@ static int prase_app_file_report(eu63_collecter *collecter, eu63_param_list *rep
                     set_report_param(param, NULL, value, i);
                     value_count++;
                     i = 0;
-                    // ilog_debug("VALUE3:%s", param->value);
                 }
                 break;
             }
@@ -1009,12 +1001,12 @@ static int prase_app_file_report(eu63_collecter *collecter, eu63_param_list *rep
     if (value_count != name_count)
     {
         report_list->rsp_count = (value_count <= name_count) ? value_count : name_count;
-        ilog_error("value_count != name_count:%d|%d", value_count, name_count);
+        printf("value_count != name_count:%d|%d", value_count, name_count);
     }
 
     if (report_list->rsp_count != report_list->req_count)
     {
-        ilog_error("rsp_count != req_count:%d|%d", report_list->rsp_count, report_list->req_count);
+        printf("rsp_count != req_count:%d|%d", report_list->rsp_count, report_list->req_count);
     }
 
     return 0;
@@ -1045,13 +1037,13 @@ static int write_presen_file_set(eu63_collecter *collecter, eu63_param_list *set
 
     struct list4c_hlist_node *pos, *n;
     eu63_report_param *param;
-    list4c_hlist_for_each_entry_safe(param, pos, n, &(set_list->param_head), hlist_node)
+    ty_list_for_each_entry_safe(param, pos, n, &(set_list->param_head), param_node)
     {
-        ilog_debug("EU63 SET addr:%s", param->name);
+        printf("EU63 SET addr:%s", param->name);
         if (param->value)
         {
             fprintf(fp, "SET %s %s;\r\n", param->name, param->value);
-            ilog_debug("EU63 SET value:%s", param->value);
+            printf("EU63 SET value:%s", param->value);
         }
     }
 
@@ -1068,16 +1060,16 @@ int eu63_execute_connect_req(eu63_collecter *collecter)
     ret = write_session_file(collecter, 1, 0);
     if (ret < 0)
     {
-        ilog_error("write_session_file failed:%d", ret);
+        printf("write_session_file failed:%d", ret);
         return -1;
     }
 
-    /* listen file delte event */
+    /* listen file delete event */
     ret = wait_session_file_delete(collecter, collecter->setup.connect_timeout);
     if (ret < 0)
     {
-        ilog_error("wait_session_file_delete failed:%d", ret);
-        delte_session_file(collecter, 1);
+        printf("wait_session_file_delete failed:%d", ret);
+        delete_session_file(collecter, 1);
         return -2;
     }
 
@@ -1085,12 +1077,12 @@ int eu63_execute_connect_req(eu63_collecter *collecter)
     ret = prase_session_rsp_file(collecter);
     if (ret < 0)
     {
-        ilog_error("prase_session_rsp_file failed:%d", ret);
+        printf("prase_session_rsp_file failed:%d", ret);
         ret = -3;
     }
 
-    /* delte files */
-    delte_session_file(collecter, 2);
+    /* delete files */
+    delete_session_file(collecter, 2);
 
     return ret;
 }
@@ -1100,7 +1092,7 @@ int eu63_execute_report_req(eu63_collecter *collecter, eu63_param_list *report_l
     int ret = -1;
 
     /* write req file*/
-    ilog_debug("EU63 write report session file");
+    printf("EU63 write report session file");
     ret = write_session_file(collecter, 1, EU63_REQ_TYPE_REPORT);
     if (ret < 0)
     {
@@ -1109,61 +1101,61 @@ int eu63_execute_report_req(eu63_collecter *collecter, eu63_param_list *report_l
     }
 
     /* write job file */
-    ilog_debug("EU63 write report job file");
+    printf("EU63 write report job file");
     ret = write_presen_file_report(collecter, report_list);
     if (ret < 0)
     {
         ilog_error("EU63 write report job file failed:%d", ret);
-        delte_session_file(collecter, 1);
+        delete_session_file(collecter, 1);
         return -1;
     }
 
-    /* listen file delte event */
-    ilog_debug("EU63 wait delte report session file");
+    /* listen file delete event */
+    printf("EU63 wait delete report session file");
     ret = wait_session_file_delete(collecter, collecter->setup.request_timeout);
     if (ret < 0)
     {
-        ilog_error("EU63 wait delte report session file failed:%d", ret);
-        delte_session_file(collecter, 1);
-        delte_presen_file(collecter, 1, EU63_REQ_TYPE_REPORT);
+        ilog_error("EU63 wait delete report session file failed:%d", ret);
+        delete_session_file(collecter, 1);
+        delete_presen_file(collecter, 1, EU63_REQ_TYPE_REPORT);
         return -1;
     }
 
     /* prase session rsp */
-    ilog_debug("EU63 prase report session rsp file");
+    printf("EU63 prase report session rsp file");
     ret = prase_session_rsp_file(collecter);
     if (ret < 0)
     {
         ilog_error("EU63 prase report session rsp fil failed:%d", ret);
-        delte_session_file(collecter, 2);
-        delte_presen_file(collecter, 1, EU63_REQ_TYPE_REPORT);
+        delete_session_file(collecter, 2);
+        delete_presen_file(collecter, 1, EU63_REQ_TYPE_REPORT);
         return -1;
     }
 
     /* prase presen rsp */
-    ilog_debug("EU63 prase report job rsp file");
+    printf("EU63 prase report job rsp file");
     ret = prase_presen_rsp_file(collecter, EU63_REQ_TYPE_REPORT);
     if (ret < 0)
     {
         ilog_error("EU63 prase report job rsp fil failed:%d", ret);
-        delte_session_file(collecter, 2);
-        delte_presen_file(collecter, 3, EU63_REQ_TYPE_REPORT);
+        delete_session_file(collecter, 2);
+        delete_presen_file(collecter, 3, EU63_REQ_TYPE_REPORT);
         return -1;
     }
 
     /* prase app dat */
-    ilog_debug("EU63 prase report dat file");
+    printf("EU63 prase report dat file");
     ret = prase_app_file_report(collecter, report_list);
     if (ret < 0)
     {
         ilog_error("EU63 prase report dat file failed:%d", ret);
     }
 
-    /* delte files */
-    ilog_debug("EU63 delte report files");
-    delte_app_file(collecter, EU63_REQ_TYPE_REPORT);
-    delte_session_file(collecter, 2);
-    delte_presen_file(collecter, 3, EU63_REQ_TYPE_REPORT);
+    /* delete files */
+    printf("EU63 delete report files");
+    delete_app_file(collecter, EU63_REQ_TYPE_REPORT);
+    delete_session_file(collecter, 2);
+    delete_presen_file(collecter, 3, EU63_REQ_TYPE_REPORT);
 
     return ret;
 }
@@ -1173,7 +1165,7 @@ int eu63_execute_set_req(eu63_collecter *collecter, eu63_param_list *set_list)
     int ret = -1;
 
     /* write req file*/
-    ilog_debug("EU63 write set session file");
+    printf("EU63 write set session file");
     ret = write_session_file(collecter, 1, EU63_REQ_TYPE_SET);
     if (ret < 0)
     {
@@ -1182,48 +1174,48 @@ int eu63_execute_set_req(eu63_collecter *collecter, eu63_param_list *set_list)
     }
 
     /* write job file */
-    ilog_debug("EU63 write set job file");
+    printf("EU63 write set job file");
     ret = write_presen_file_set(collecter, set_list);
     if (ret < 0)
     {
         ilog_error("EU63 write set job file failed:%d", ret);
-        delte_session_file(collecter, 1);
+        delete_session_file(collecter, 1);
         return -1;
     }
 
-    /* listen file delte event */
-    ilog_debug("EU63 wait delte set session file");
+    /* listen file delete event */
+    printf("EU63 wait delete set session file");
     ret = wait_session_file_delete(collecter, collecter->setup.request_timeout);
     if (ret < 0)
     {
-        ilog_error("EU63 wait delte set session file failed:%d", ret);
-        delte_session_file(collecter, 1);
+        ilog_error("EU63 wait delete set session file failed:%d", ret);
+        delete_session_file(collecter, 1);
         return -1;
     }
 
     /* prase session rsp */
-    ilog_debug("EU63 prase set session rsp file");
+    printf("EU63 prase set session rsp file");
     ret = prase_session_rsp_file(collecter);
     if (ret < 0)
     {
         ilog_error("EU63 prase set session rsp file failed:%d", ret);
-        delte_session_file(collecter, 2);
-        delte_presen_file(collecter, 1, EU63_REQ_TYPE_SET);
+        delete_session_file(collecter, 2);
+        delete_presen_file(collecter, 1, EU63_REQ_TYPE_SET);
         return -1;
     }
 
     /* prase presen rsp */
-    ilog_debug("EU63 prase set job rsp file");
+    printf("EU63 prase set job rsp file");
     ret = prase_presen_rsp_file(collecter, EU63_REQ_TYPE_SET);
     if (ret < 0)
     {
         ilog_error("EU63 prase set job rsp file failed:%d", ret);
     }
 
-    /* delte files */
-    ilog_debug("EU63 delte set files");
-    delte_session_file(collecter, 2);
-    delte_presen_file(collecter, 3, EU63_REQ_TYPE_SET);
+    /* delete files */
+    printf("EU63 delete set files");
+    delete_session_file(collecter, 2);
+    delete_presen_file(collecter, 3, EU63_REQ_TYPE_SET);
 
     return ret;
 }
