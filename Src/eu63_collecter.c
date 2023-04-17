@@ -44,12 +44,12 @@ eu63_collecter *eu63_collecter_create(const char *imm)
 
         if (imm)
         {
-            strncpy(collecter->setup.imm, imm, sizeof(collecter->setup.imm));
+            strncpy(collecter->setup.imm, imm, sizeof(collecter->setup.imm) - 1);
         }
     }
     else
     {
-        printf("eu63_collecter_create failed");
+        printf("EU63 create collecter failed\n");
     }
 
     return collecter;
@@ -64,11 +64,11 @@ int eu63_create_share_folder(void)
 {
     if (0 != access(EUROMAP63_SHARE_FOLDER_PATH, F_OK))
     {
-        printf("Create share folder!!!");
+        printf("EU63 create share folder\n");
         if (0 != mkdir(EUROMAP63_SHARE_FOLDER_PATH, 0777))
         {
-            printf("Mkdir share folder failed");
-            return -2;
+            printf("EU63 mkdir share folder failed\n");
+            return -1;
         }
     }
 
@@ -77,6 +77,8 @@ int eu63_create_share_folder(void)
 
 int eu63_delete_share_folder(void)
 {
+    printf("EU63 delete share folder\n");
+
     if (0 == access(EUROMAP63_SHARE_FOLDER_PATH, F_OK))
     {
         system("rm -rf "EUROMAP63_SHARE_FOLDER_PATH);
@@ -89,6 +91,7 @@ int eu63_create_imm_folder(eu63_collecter *collecter)
 {
     if (strlen(collecter->setup.imm) == 0)
     {
+        printf("EU63 create IMM folder args error\n");
         return -1;
     }
 
@@ -97,10 +100,10 @@ int eu63_create_imm_folder(eu63_collecter *collecter)
 
     if (0 != access(path, F_OK))
     {
-        printf("Create IMM folder!!!");
+        printf("EU63 create IMM folder\n");
         if (0 != mkdir(path, 0777))
         {
-            printf("Mkdir IMM folder failed");
+            printf("EU63 mkdir IMM folder failed\n");
             return -2;
         }
     }
@@ -110,6 +113,8 @@ int eu63_create_imm_folder(eu63_collecter *collecter)
 
 int eu63_delete_imm_folder(eu63_collecter *collecter)
 {
+    printf("EU63 delete IMM folder\n");
+
     char path[256] = {0};
     snprintf(path, sizeof(path), EUROMAP63_SHARE_FOLDER_PATH"%s", collecter->setup.imm);
 
@@ -124,6 +129,8 @@ int eu63_delete_imm_folder(eu63_collecter *collecter)
 
 int eu63_clear_imm_folder(eu63_collecter *collecter)
 {
+    printf("EU63 clear IMM folder\n");
+
     char path[256] = {0};
     snprintf(path, sizeof(path), EUROMAP63_SHARE_FOLDER_PATH"%s", collecter->setup.imm);
     unsigned int path_len = strlen(path);
@@ -141,8 +148,8 @@ int eu63_clear_imm_folder(eu63_collecter *collecter)
         if (strcmp(".", ptr->d_name) != 0 && strcmp("..", ptr->d_name) != 0)
         {
             snprintf(file_name, sizeof(file_name), "/%s", ptr->d_name);
-            strncpy(&path[path_len], file_name, sizeof(file_name));
-            printf("EU63 clear imm:%s", path);
+            strncpy(&path[path_len], file_name, sizeof(file_name) - 1);
+            printf("EU63 clear imm:%s\n", path);
             remove(path);
         }
     }
@@ -159,7 +166,7 @@ static int search_available_session(eu63_collecter *collecter)
     int path_len = strlen(path);
 
     if (0 != access(path, F_OK))
-        return -2;
+        return -1;
 
     unsigned short nnnn = collecter->setup.min_session;
     char sess_name[16] = {0};
@@ -167,7 +174,7 @@ static int search_available_session(eu63_collecter *collecter)
     for (i = collecter->setup.min_session; i < collecter->setup.max_session; i++)
     {
         snprintf(sess_name, sizeof(sess_name), "/SESS%04d.REQ", nnnn);
-        strncpy(&path[path_len], sess_name, sizeof(sess_name));
+        strncpy(&path[path_len], sess_name, sizeof(sess_name) - 1);
 
         if (0 == access(path, F_OK))
         {
@@ -176,7 +183,7 @@ static int search_available_session(eu63_collecter *collecter)
         }
 
         snprintf(sess_name, sizeof(sess_name), "/SESS%04d.RSP", nnnn);
-        strncpy(&path[path_len], sess_name, sizeof(sess_name));
+        strncpy(&path[path_len], sess_name, sizeof(sess_name) - 1);
 
         if (0 == access(path, F_OK))
         {
@@ -189,7 +196,7 @@ static int search_available_session(eu63_collecter *collecter)
 
     if (collecter->setup.max_session == i)
     {
-        return -3;
+        return -99;
     }
 
     return nnnn;
@@ -203,7 +210,11 @@ static int write_session_file(eu63_collecter *collecter, int is_connect, int exe
     }
 
     collecter->now_session = search_available_session(collecter);
-    if (collecter->now_session < 0) return -1;
+    if (collecter->now_session < 0)
+    {
+        printf("EU63 have no available session num\n");
+        return -1;
+    }
 
     char sess_name[16] = {0};
     char path[256] = {0};
@@ -244,8 +255,6 @@ static int prase_session_rsp_file(eu63_collecter *collecter)
     char path[256] = {0};
     char sess_name[16] = {0};
 
-    if (collecter->now_session < 0) return -1;
-
     snprintf(path, sizeof(path), EUROMAP63_SHARE_FOLDER_PATH"%s", collecter->setup.imm);
     snprintf(sess_name, sizeof(sess_name), "/SESS%04d.RSP", collecter->now_session);
     strncat(path, sess_name, sizeof(sess_name));
@@ -269,7 +278,7 @@ static int prase_session_rsp_file(eu63_collecter *collecter)
         {
             line[i] = '\0';
             i = 0;
-            printf("SESS_RSP:%s;", line);
+            printf("SESS_RSP:%s;\n", line);
             if (NULL != strstr(line, "ERROR"))
             {
                 error--;
@@ -281,7 +290,7 @@ static int prase_session_rsp_file(eu63_collecter *collecter)
             {
                 line[i] = '\0';
                 i = 0;
-                printf("SESS_RSP:%s", line);
+                printf("SESS_RSP:%s\n", line);
                 if (NULL != strstr(line, "ERROR"))
                 {
                     error--;
@@ -294,7 +303,7 @@ static int prase_session_rsp_file(eu63_collecter *collecter)
             {
                 line[i] = '\0';
                 i = 0;
-                printf("SESS_RSP:%s", line);
+                printf("SESS_RSP:%s\n", line);
                 if (NULL != strstr(line, "ERROR"))
                 {
                     error--;
@@ -335,7 +344,7 @@ static int wait_file_delete(const char *path, int timeout)
     int fd = inotify_init();
     if (fd < 0)
     {
-        printf("inotify_init failed:%s", strerror(errno));
+        printf("inotify_init failed:%s\n", strerror(errno));
         return -2;
     }
 
@@ -343,7 +352,7 @@ static int wait_file_delete(const char *path, int timeout)
     wfd = inotify_add_watch(fd, path, IN_DELETE_SELF);
     if (wfd < 0)
     {
-        printf("inotify_add_watch failed:%s", strerror(errno));
+        printf("inotify_add_watch failed:%s\n", strerror(errno));
         close(fd);
         return -2;
     }
@@ -371,19 +380,19 @@ static int wait_file_delete(const char *path, int timeout)
         }
         else
         {
-            printf("Read inotify error:%s", strerror(errno));
+            printf("Read inotify error:%s\n", strerror(errno));
             ret = -3;
         }
 
     }
     else if (0 == ret)
     {
-        printf("wait_file_delete select timeout!");
+        printf("wait_file_delete select timeout!\n");
         ret = -3;
     }
     else
     {
-        printf("wait_file_delete select error:%s", strerror(errno));
+        printf("wait_file_delete select error:%s\n", strerror(errno));
         ret = -3;
     }
 
@@ -398,8 +407,6 @@ static int wait_session_file_delete(eu63_collecter *collecter, int timeout)
     char path[256] = {0};
     char sess_name[16] = {0};
 
-    if (collecter->now_session < 0) return -1;
-
     snprintf(path, sizeof(path), EUROMAP63_SHARE_FOLDER_PATH"%s", collecter->setup.imm);
     snprintf(sess_name, sizeof(sess_name), "/SESS%04d.REQ", collecter->now_session);
     strncat(path, sess_name, sizeof(sess_name));
@@ -411,8 +418,6 @@ static int delete_session_file(eu63_collecter *collecter, int type)
 {
     char path[256] = {0};
     char sess_name[16] = {0};
-
-    if (collecter->now_session < 0) return -100;
 
     snprintf(path, sizeof(path), EUROMAP63_SHARE_FOLDER_PATH"%s", collecter->setup.imm);
     if (1 == type)
@@ -435,6 +440,71 @@ static int delete_session_file(eu63_collecter *collecter, int type)
     }
 
     return 0;
+}
+
+static int search_available_presen(eu63_collecter *collecter, int cmd_type)
+{
+    char path[256] = {0};
+    snprintf(path, sizeof(path), EUROMAP63_SHARE_FOLDER_PATH"%s", collecter->setup.imm);
+    int path_len = strlen(path);
+
+    if (0 != access(path, F_OK))
+        return -1;
+
+    char type = 'P';
+    if (EU63_REQ_TYPE_REPORT == cmd_type)
+    {
+        type = 'P';
+    }
+    else if (EU63_REQ_TYPE_SET == cmd_type)
+    {
+        type = 'S';
+    }
+    else
+    {
+        return -2;
+    }
+
+    int i = 0, nnn = 0;
+    char file_name[16] = {0};
+    for (i = 0; i < 1000; i++)
+    {
+        snprintf(file_name, sizeof(file_name), "/0000%c%03d.JOB", type, nnn);
+        strncpy(&path[path_len], file_name, sizeof(file_name));
+
+        if (0 == access(path, F_OK))
+        {
+            nnn++;
+            continue;
+        }
+
+        snprintf(file_name, sizeof(file_name), "/0000%c%03d.RSP", type, nnn);
+        strncpy(&path[path_len], file_name, sizeof(file_name));
+
+        if (0 == access(path, F_OK))
+        {
+            nnn++;
+            continue;
+        }
+
+        snprintf(file_name, sizeof(file_name), "/0000%c%03d.DAT", type, nnn);
+        strncpy(&path[path_len], file_name, sizeof(file_name));
+
+        if (0 == access(path, F_OK))
+        {
+            nnn++;
+            continue;
+        }
+
+        break;
+    }
+
+    if (1000 == i)
+    {
+        return -99;
+    }
+
+    return nnn;
 }
 
 static int prase_presen_rsp_file(eu63_collecter *collecter, int rsp_type)
@@ -476,7 +546,7 @@ static int prase_presen_rsp_file(eu63_collecter *collecter, int rsp_type)
         {
             line[i] = '\0';
             i = 0;
-            printf("PRESEN_RSP:%s;", line);
+            printf("PRESEN_RSP:%s;\n", line);
             if (NULL != strstr(line, "ERROR"))
             {
                 error--;
@@ -488,7 +558,7 @@ static int prase_presen_rsp_file(eu63_collecter *collecter, int rsp_type)
             {
                 line[i] = '\0';
                 i = 0;
-                printf("PRESEN_RSP:%s", line);
+                printf("PRESEN_RSP:%s\n", line);
                 if (NULL != strstr(line, "ERROR"))
                 {
                     error--;
@@ -501,7 +571,7 @@ static int prase_presen_rsp_file(eu63_collecter *collecter, int rsp_type)
             {
                 line[i] = '\0';
                 i = 0;
-                printf("PRESEN_RSP:%s", line);
+                printf("PRESEN_RSP:%s\n", line);
                 if (NULL != strstr(line, "ERROR"))
                 {
                     error--;
@@ -523,7 +593,7 @@ static int prase_presen_rsp_file(eu63_collecter *collecter, int rsp_type)
 
     if (strlen(line) == 0 || error < 0)
     {
-        return -9;
+        return -99;
     }
 
     return 0;
@@ -648,7 +718,7 @@ int eu63_free_param_list(eu63_param_list *list)
 {
     if (NULL == list) return -1;
 
-    struct list4c_hlist_node *pos, *n;
+    ty_list_t *pos, *n;
     eu63_report_param *param;
 
     ty_list_for_each_entry_safe(param, pos, n, &(list->param_head), param_node)
@@ -660,71 +730,6 @@ int eu63_free_param_list(eu63_param_list *list)
     free(list);
 
     return 0;
-}
-
-static int search_available_presen(eu63_collecter *collecter, int cmd_type)
-{
-    char path[256] = {0};
-    snprintf(path, sizeof(path), EUROMAP63_SHARE_FOLDER_PATH"%s", collecter->setup.imm);
-    int path_len = strlen(path);
-
-    if (0 != access(path, F_OK))
-        return -1;
-
-    char type = 'P';
-    if (EU63_REQ_TYPE_REPORT == cmd_type)
-    {
-        type = 'P';
-    }
-    else if (EU63_REQ_TYPE_SET == cmd_type)
-    {
-        type = 'S';
-    }
-    else
-    {
-        return -2;
-    }
-
-    int i = 0, nnn = 0;
-    char file_name[16] = {0};
-    for (i = 0; i < 1000; i++)
-    {
-        snprintf(file_name, sizeof(file_name), "/0000%c%04d.JOB", type, nnn);
-        strncpy(&path[path_len], file_name, sizeof(file_name));
-
-        if (0 == access(path, F_OK))
-        {
-            nnn++;
-            continue;
-        }
-
-        snprintf(file_name, sizeof(file_name), "/0000%c%04d.RSP", type, nnn);
-        strncpy(&path[path_len], file_name, sizeof(file_name));
-
-        if (0 == access(path, F_OK))
-        {
-            nnn++;
-            continue;
-        }
-
-        snprintf(file_name, sizeof(file_name), "/0000%c%04d.DAT", type, nnn);
-        strncpy(&path[path_len], file_name, sizeof(file_name));
-
-        if (0 == access(path, F_OK))
-        {
-            nnn++;
-            continue;
-        }
-
-        break;
-    }
-
-    if (1000 == i)
-    {
-        return -10;
-    }
-
-    return nnn;
 }
 
 static int write_presen_file_report(eu63_collecter *collecter, eu63_param_list *report_list)
@@ -761,7 +766,7 @@ static int write_presen_file_report(eu63_collecter *collecter, eu63_param_list *
     }
 
     fputs("PARAMETERS\r\n", fp);
-    struct list4c_hlist_node *pos, *n;
+    ty_list_t *pos, *n;
     eu63_report_param *param;
     ty_list_for_each_entry_safe(param, pos, n, &(report_list->param_head), param_node)
     {
@@ -779,11 +784,13 @@ static int write_presen_file_report(eu63_collecter *collecter, eu63_param_list *
     return 0;
 }
 
-eu63_report_param *find_report_param_from_list(eu63_param_list *list, unsigned int num)
+static eu63_report_param *find_report_param_from_list(eu63_param_list *list, unsigned int num)
 {
-    struct list4c_hlist_node *pos, *n;
+    ty_list_t *pos, *n;
     eu63_report_param *param = NULL;
     unsigned int i = 0;
+
+    if(num >= list->req_count) return NULL;
 
     ty_list_for_each_entry_safe(param, pos, n, &(list->param_head), param_node)
     {
@@ -1001,12 +1008,12 @@ static int prase_app_file_report(eu63_collecter *collecter, eu63_param_list *rep
     if (value_count != name_count)
     {
         report_list->rsp_count = (value_count <= name_count) ? value_count : name_count;
-        printf("value_count != name_count:%d|%d", value_count, name_count);
+        printf("value_count != name_count:%d|%d\n", value_count, name_count);
     }
 
     if (report_list->rsp_count != report_list->req_count)
     {
-        printf("rsp_count != req_count:%d|%d", report_list->rsp_count, report_list->req_count);
+        printf("rsp_count != req_count:%d|%d\n", report_list->rsp_count, report_list->req_count);
     }
 
     return 0;
@@ -1035,15 +1042,15 @@ static int write_presen_file_set(eu63_collecter *collecter, eu63_param_list *set
 
     fprintf(fp, "JOB 0000S%03d RESPONSE \"0000S%03d.JOB\";\r\n", collecter->now_presen, collecter->now_presen);
 
-    struct list4c_hlist_node *pos, *n;
+    ty_list_t *pos, *n;
     eu63_report_param *param;
     ty_list_for_each_entry_safe(param, pos, n, &(set_list->param_head), param_node)
     {
-        printf("EU63 SET addr:%s", param->name);
+        printf("EU63 SET name:%s\n", param->name);
         if (param->value)
         {
             fprintf(fp, "SET %s %s;\r\n", param->name, param->value);
-            printf("EU63 SET value:%s", param->value);
+            printf("EU63 SET value:%s\n", param->value);
         }
     }
 
@@ -1060,7 +1067,7 @@ int eu63_execute_connect_req(eu63_collecter *collecter)
     ret = write_session_file(collecter, 1, 0);
     if (ret < 0)
     {
-        printf("write_session_file failed:%d", ret);
+        printf("write_session_file failed:%d\n", ret);
         return -1;
     }
 
@@ -1068,7 +1075,7 @@ int eu63_execute_connect_req(eu63_collecter *collecter)
     ret = wait_session_file_delete(collecter, collecter->setup.connect_timeout);
     if (ret < 0)
     {
-        printf("wait_session_file_delete failed:%d", ret);
+        printf("wait_session_file_delete failed:%d\n", ret);
         delete_session_file(collecter, 1);
         return -2;
     }
@@ -1077,7 +1084,7 @@ int eu63_execute_connect_req(eu63_collecter *collecter)
     ret = prase_session_rsp_file(collecter);
     if (ret < 0)
     {
-        printf("prase_session_rsp_file failed:%d", ret);
+        printf("prase_session_rsp_file failed:%d\n", ret);
         ret = -3;
     }
 
@@ -1092,67 +1099,67 @@ int eu63_execute_report_req(eu63_collecter *collecter, eu63_param_list *report_l
     int ret = -1;
 
     /* write req file*/
-    printf("EU63 write report session file");
+    printf("EU63 write report session file\n");
     ret = write_session_file(collecter, 1, EU63_REQ_TYPE_REPORT);
     if (ret < 0)
     {
-        ilog_error("EU63 write report session file failed:%d", ret);
+        printf("EU63 write report session file failed:%d\n", ret);
         return -1;
     }
 
     /* write job file */
-    printf("EU63 write report job file");
+    printf("EU63 write report job file\n");
     ret = write_presen_file_report(collecter, report_list);
     if (ret < 0)
     {
-        ilog_error("EU63 write report job file failed:%d", ret);
+        printf("EU63 write report job file failed:%d\n", ret);
         delete_session_file(collecter, 1);
         return -1;
     }
 
     /* listen file delete event */
-    printf("EU63 wait delete report session file");
+    printf("EU63 wait delete report session file\n");
     ret = wait_session_file_delete(collecter, collecter->setup.request_timeout);
     if (ret < 0)
     {
-        ilog_error("EU63 wait delete report session file failed:%d", ret);
+        printf("EU63 wait delete report session file failed:%d\n", ret);
         delete_session_file(collecter, 1);
         delete_presen_file(collecter, 1, EU63_REQ_TYPE_REPORT);
         return -1;
     }
 
     /* prase session rsp */
-    printf("EU63 prase report session rsp file");
+    printf("EU63 prase report session rsp file\n");
     ret = prase_session_rsp_file(collecter);
     if (ret < 0)
     {
-        ilog_error("EU63 prase report session rsp fil failed:%d", ret);
+        printf("EU63 prase report session rsp fil failed:%d\n", ret);
         delete_session_file(collecter, 2);
         delete_presen_file(collecter, 1, EU63_REQ_TYPE_REPORT);
         return -1;
     }
 
     /* prase presen rsp */
-    printf("EU63 prase report job rsp file");
+    printf("EU63 prase report job rsp file\n");
     ret = prase_presen_rsp_file(collecter, EU63_REQ_TYPE_REPORT);
     if (ret < 0)
     {
-        ilog_error("EU63 prase report job rsp fil failed:%d", ret);
+        printf("EU63 prase report job rsp file failed:%d\n", ret);
         delete_session_file(collecter, 2);
         delete_presen_file(collecter, 3, EU63_REQ_TYPE_REPORT);
         return -1;
     }
 
     /* prase app dat */
-    printf("EU63 prase report dat file");
+    printf("EU63 prase report dat file\n");
     ret = prase_app_file_report(collecter, report_list);
     if (ret < 0)
     {
-        ilog_error("EU63 prase report dat file failed:%d", ret);
+        printf("EU63 prase report dat file failed:%d\n", ret);
     }
 
     /* delete files */
-    printf("EU63 delete report files");
+    printf("EU63 delete report files\n");
     delete_app_file(collecter, EU63_REQ_TYPE_REPORT);
     delete_session_file(collecter, 2);
     delete_presen_file(collecter, 3, EU63_REQ_TYPE_REPORT);
@@ -1165,55 +1172,55 @@ int eu63_execute_set_req(eu63_collecter *collecter, eu63_param_list *set_list)
     int ret = -1;
 
     /* write req file*/
-    printf("EU63 write set session file");
+    printf("EU63 write set session file\n");
     ret = write_session_file(collecter, 1, EU63_REQ_TYPE_SET);
     if (ret < 0)
     {
-        ilog_error("EU63 write set session file failed:%d", ret);
+        printf("EU63 write set session file failed:%d\n", ret);
         return -1;
     }
 
     /* write job file */
-    printf("EU63 write set job file");
+    printf("EU63 write set job file\n");
     ret = write_presen_file_set(collecter, set_list);
     if (ret < 0)
     {
-        ilog_error("EU63 write set job file failed:%d", ret);
+        printf("EU63 write set job file failed:%d\n", ret);
         delete_session_file(collecter, 1);
         return -1;
     }
 
     /* listen file delete event */
-    printf("EU63 wait delete set session file");
+    printf("EU63 wait delete set session file\n");
     ret = wait_session_file_delete(collecter, collecter->setup.request_timeout);
     if (ret < 0)
     {
-        ilog_error("EU63 wait delete set session file failed:%d", ret);
+        printf("EU63 wait delete set session file failed:%d\n", ret);
         delete_session_file(collecter, 1);
         return -1;
     }
 
     /* prase session rsp */
-    printf("EU63 prase set session rsp file");
+    printf("EU63 prase set session rsp file\n");
     ret = prase_session_rsp_file(collecter);
     if (ret < 0)
     {
-        ilog_error("EU63 prase set session rsp file failed:%d", ret);
+        printf("EU63 prase set session rsp file failed:%d\n", ret);
         delete_session_file(collecter, 2);
         delete_presen_file(collecter, 1, EU63_REQ_TYPE_SET);
         return -1;
     }
 
     /* prase presen rsp */
-    printf("EU63 prase set job rsp file");
+    printf("EU63 prase set job rsp file\n");
     ret = prase_presen_rsp_file(collecter, EU63_REQ_TYPE_SET);
     if (ret < 0)
     {
-        ilog_error("EU63 prase set job rsp file failed:%d", ret);
+        printf("EU63 prase set job rsp file failed:%d\n", ret);
     }
 
     /* delete files */
-    printf("EU63 delete set files");
+    printf("EU63 delete set files\n");
     delete_session_file(collecter, 2);
     delete_presen_file(collecter, 3, EU63_REQ_TYPE_SET);
 

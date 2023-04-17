@@ -105,6 +105,28 @@ static inline void ty_list_init(ty_list_t *l)
     l->next = l->prev = 0;
 }
 
+static inline void ty_list_append_head(ty_list_t *h, ty_list_t *n)
+{
+    if ((n->next = h->next) != 0)
+    {
+        h->next->prev = n;
+    }
+
+    h->next = n;
+    n->prev = h;
+}
+
+static inline void ty_list_append_tail(ty_list_t *h, ty_list_t *n)
+{
+    while (h->next)
+    {
+        h = h->next;
+    }
+
+    h->next = n;
+    n->prev = h;
+}
+
 static inline void ty_list_insert_after(ty_list_t *l, ty_list_t *n)
 {
     l->next->prev = n;
@@ -128,7 +150,7 @@ static inline void ty_list_remove(ty_list_t *n)
     n->next->prev = n->prev;
     n->prev->next = n->next;
 
-    n->next = n->prev = n;
+    n->next = n->prev = 0;
 }
 
 static inline int ty_list_is_empty(const ty_list_t *l)
@@ -162,12 +184,12 @@ static inline unsigned int ty_list_get_len(const ty_list_t *l)
 
 #define ty_list_for_each_entry(tpos, pos, head, member) \
     for (pos = (head)->next; \
-         pos && ({ tpos = ty_list_entry(pos, typeof(*tpos), member); 1 }); \
+         pos && ({ tpos = ty_list_entry(pos, typeof(*tpos), member); 1 ;}); \
          pos = pos->next)
 
 #define ty_list_for_each_entry_safe(tpos, pos, n, head, member) \
     for (pos = (head)->next; \
-         pos && ({ n = pos->next; 1;}) && ({ tpos = ty_list_entry(pos, typeof(*tpos), member); 1 }); \
+         pos && ({ n = pos->next; 1;}) && ({ tpos = ty_list_entry(pos, typeof(*tpos), member); 1 ;}); \
          pos = n)
 
 

@@ -1,11 +1,22 @@
 #include <stdio.h>
 #include <string.h>
-#include "eu63_collecter.h"
+#include <unistd.h>
+#include "../Src/eu63_collecter.h"
 
 
 static char *param_name[] = {"ABC001", "ABC002", "ABC003", "ABC004"};
+static void print_param_value(eu63_param_list *list)
+{
+    ty_list_t *pos, *n;
+    eu63_report_param *param;
 
-int main()
+    ty_list_for_each_entry_safe(param, pos, n, &(list->param_head), param_node)
+    {
+        printf("%s value:%s\n", param->name, param->value);
+    }
+}
+
+int main(int argc, char *argv[])
 {
     int ret = -1;
     eu63_collecter *collecter = NULL;
@@ -14,28 +25,30 @@ int main()
     ret = eu63_create_share_folder();
     if (ret)
     {
-        printf("EU63 create share folder failed");
+        printf("EU63 create share folder failed\n");
         return -1;
     }
 
     collecter = eu63_collecter_create("IMM01");
     if (!collecter)
     {
-        printf("EU63 create collecter failed");
+        printf("EU63 create collecter failed\n");
         return -2;
     }
 
     ret = eu63_create_imm_folder(collecter);
     if (ret)
     {
-        printf("EU63 create imm folder failed");
+        printf("EU63 create imm folder failed\n");
+        ret = -3;
         goto _error;
     }
 
     list = eu63_create_param_list();
     if (!list)
     {
-        printf("EU63 create param list failed");
+        printf("EU63 create param list failed\n");
+        ret = -4;
         goto _error;
     }
 
@@ -49,24 +62,33 @@ int main()
         }
 
         strncpy(param->name, param_name[i], sizeof(param->name));
-        ty_list_insert_after(&list->param_head, &param->param_node);
-        printf("Append %s to param list", param->name);
+        ty_list_append_head(&list->param_head, &param->param_node);
+        list->req_count++;
+        printf("Append %s to param list\n", param->name);
     }
 
-    if (ty_list_is_empty(list))
+    if (0 == list->req_count)
     {
-        printf("EU63 param list is null");
+        printf("EU63 param list is null\n");
+        ret = -5;
         goto _error;
     }
 
     while (1)
     {
-        eu63_execute_report_req(collecter, list);
+        printf("REQ report file\n");
+        ret = eu63_execute_report_req(collecter, list);
+        if (!ret)
+        {
+            print_param_value(list);
+        }
+        else
+        {
+            printf("EU63 REQ report failed\n");
+        }
 
         sleep(60);
     }
-
-    return 0;
 
 _error:
     if (collecter)
@@ -78,5 +100,5 @@ _error:
         eu63_free_param_list(list);
     }
 
-    return -9;
+    return ret;
 }

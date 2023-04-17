@@ -3,11 +3,11 @@
 
 #include "ty_list.h"
 
-#define EUROMAP63_SHARE_FOLDER_PATH     "/var/user/data/"
+#define EUROMAP63_SHARE_FOLDER_PATH     "/home/tang/Inhand/EU63/"
 #define EUROMAP63_IMM_NAME_MAX_LEN      48
 #define EUROMAP63_PARAM_NAME_MAX_LEN    32
 #define EUROMAP63_CONNECT_TIMEOUT_MS    5000
-#define EUROMAP63_REQUEST_TIMEOUT_MS    60000
+#define EUROMAP63_REQUEST_TIMEOUT_MS    30000
 #define EUROMAP63_MIN_SESSION_NUM       0
 #define EUROMAP63_MAX_SESSION_NUM       10
 #define EUROMAP63_HAS_CYCLIC            1

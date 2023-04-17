@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "inotify.h": "c"
+        "inotify.h": "c",
+        "eu63_collecter.h": "c"
     }
 }
